@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حمولة - لوحة الإدارة الاحترافية</title>
+    <link rel="stylesheet" href="assets/css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body onload="checkAuth()">
+    <!-- Login Screen -->
+    <div id="login-screen"
+        style="display: flex; justify-content: center; align-items: center; height: 100vh; position: fixed; width: 100%; z-index: 9999;">
+        <div class="login-card"
+            style="padding: 50px; border-radius: 32px; width: 100%; max-width: 450px; text-align: center;">
+            <div
+                style="background: var(--primary); width: 80px; height: 80px; border-radius: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; box-shadow: 0 20px 40px rgba(45, 90, 240, 0.3);">
+                <i data-lucide="shield-check" style="color: white; width: 40px; height: 40px;"></i>
+            </div>
+            <h2 style="font-size: 32px; margin-bottom: 10px;">دخول المسؤول</h2>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 40px;">مرحباً بك في لوحة تحكم حمولة</p>
+
+            <div class="form-group" style="text-align: right;">
+                <label style="color: rgba(255,255,255,0.8);">رقم الهاتف</label>
+                <input type="text" id="login-phone" placeholder="05xxxxxxxx">
+            </div>
+            <div class="form-group" style="text-align: right;">
+                <label style="color: rgba(255,255,255,0.8);">كلمة المرور</label>
+                <input type="password" id="login-password" placeholder="••••••••">
+            </div>
+            <button onclick="adminLogin()" class="btn btn-primary"
+                style="width: 100%; padding: 18px; font-size: 18px; margin-top: 10px;">دخول آمن</button>
+            <p id="login-error"
+                style="color: #F87171; text-align: center; margin-top: 20px; display: none; font-weight: 600;"></p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="admin-panel" style="display: none;">
+        <aside class="sidebar">
+            <div class="logo">
+                <div style="background: var(--primary); padding: 8px; border-radius: 10px;">
+                    <i data-lucide="truck" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2>حـمولة</h2>
+            </div>
+            <nav>
+                <a href="#" class="active" onclick="showSection('stats')"><i
+                        data-lucide="layout-dashboard"></i>الرئيسية</a>
+                <a href="#" onclick="showSection('vehicles')"><i data-lucide="truck"></i>إدارة المركبات</a>
+                <a href="#" onclick="showSection('labor')"><i data-lucide="users"></i>إدارة العمالة</a>
+                <a href="#" onclick="showSection('pending_drivers')"><i data-lucide="user-check"></i>طلبات السائقين</a>
+                <a href="#" onclick="showSection('users')"><i data-lucide="users-2"></i>المستخدمين</a>
+                <a href="#" onclick="showSection('requests')"><i data-lucide="list-ordered"></i>الطلبات</a>
+                <a href="#" onclick="showSection('settings')"><i data-lucide="settings"></i>الإعدادات</a>
+                <a href="#" onclick="adminLogout()" class="logout"><i data-lucide="log-out"></i>تسجيل الخروج</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <h1 id="page-title">مرحباً، المسؤول</h1>
+                    <p style="color: var(--secondary); font-size: 14px; margin-top: 5px;">إليك ملخص العمليات اليوم</p>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn btn-danger" onclick="confirmResetTrips()">
+                        <i data-lucide="refresh-cw"></i>تصفير الطلبات والرحلات
+                    </button>
+                    <button class="btn btn-primary" id="add-btn" onclick="openAddModal()">
+                        <i data-lucide="plus"></i>إضافة جديد
+                    </button>
+                </div>
+            </header>
+
+            <!-- Stats Section -->
+            <section id="stats-section" class="content-section">
+                <div class="stats-grid">
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, #2D5AF0 0%, #5C7FFF 100%); box-shadow: 0 20px 40px rgba(45, 90, 240, 0.2);">
+                        <h3>إجمالي المستخدمين</h3>
+                        <p id="stat-users">0</p>
+                        <i data-lucide="users"
+                            style="position: absolute; left: -10px; bottom: -10px; width: 100px; height: 100px; opacity: 0.1;"></i>
+                    </div>
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);">
+                        <h3>السائقين المعتمدين</h3>
+                        <p id="stat-drivers">0</p>
+                        <i data-lucide="shield-check"
+                            style="position: absolute; left: -10px; bottom: -10px; width: 100px; height: 100px; opacity: 0.1;"></i>
+                    </div>
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); box-shadow: 0 20px 40px rgba(245, 158, 11, 0.2);">
+                        <h3>الرحلات المكتملة</h3>
+                        <p id="stat-rides">0</p>
+                        <i data-lucide="check-circle"
+                            style="position: absolute; left: -10px; bottom: -10px; width: 100px; height: 100px; opacity: 0.1;"></i>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 25px;">
+                    <div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #F3F4F6;">
+                        <h3 style="margin-bottom: 20px; font-weight: 700;">خارطة العمليات المباشرة</h3>
+                        <div id="adminMap" style="height: 350px; border-radius: 12px; z-index: 1;"></div>
+                    </div>
+                    <div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #F3F4F6;">
+                        <h3 style="margin-bottom: 20px; font-weight: 700;">نشاط الرحلات الأخير</h3>
+                        <div style="height: 350px;">
+                            <canvas id="ridesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other sections keep their logic but wrapped in content-section class -->
+            <section id="vehicles-section" class="content-section" style="display:none;">
+                <table id="vehicles-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم بالعربية</th>
+                            <th>الاسم بالإنجليزية</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <section id="labor-section" class="content-section" style="display:none;">
+                <table id="labor-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم بالعربية</th>
+                            <th>الاسم بالإنجليزية</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <section id="pending_drivers-section" class="content-section" style="display:none;">
+                <table id="pending-drivers-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>الهاتف</th>
+                            <th>المركبة</th>
+                            <th>اللوحة</th>
+                            <th>التاريخ</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <section id="users-section" class="content-section" style="display:none;">
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>الهاتف</th>
+                            <th>الدور</th>
+                            <th>التاريخ</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <section id="requests-section" class="content-section" style="display:none;">
+                <table id="requests-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>العميل</th>
+                            <th>السائق</th>
+                            <th>المركبة</th>
+                            <th>السعر</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <section id="settings-section" class="content-section" style="display:none;">
+                <div style="max-width: 600px;">
+                    <h3 style="margin-bottom: 25px;">الإعدادات العامة</h3>
+                    <div class="form-group">
+                        <label>نسبة عمولة التطبيق (%)</label>
+                        <input type="number" id="setting-commission" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label>دعم العمناء (رقم الواتساب)</label>
+                        <input type="text" id="setting-support" value="+96650000000">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">حفظ التغييرات</button>
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #F3F4F6;">
+                    <h4 style="color: #DC2626; margin-bottom: 15px;">منطقة خطر</h4>
+                    <p style="font-size: 13px; color: #6B7280; margin-bottom: 15px;">سيؤدي هذا الإجراء إلى حذف كافة
+                        الرحلات، العروض، والرسائل من النظام نهائياً.</p>
+                    <button class="btn btn-danger" onclick="confirmResetTrips()">تصفير الطلبات والرحلات</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for Add/Edit -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2 id="modal-title" style="margin-bottom: 30px;">إضافة جديد</h2>
+                <form id="data-form">
+                    <input type="hidden" id="item-id">
+                    <div class="form-group">
+                        <label>الاسم بالعربية</label>
+                        <input type="text" id="name-ar" required>
+                    </div>
+                    <div class="form-group">
+                        <label>الاسم بالإنجليزية</label>
+                        <input type="text" id="name-en" required>
+                    </div>
+                    <div class="form-group">
+                        <label>الحالة</label>
+                        <select id="is-active">
+                            <option value="1">فعيل (نشط)</option>
+                            <option value="0">غير فعال (معطل)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="vehicle-image-field" style="display:none;">
+                        <label>صورة المركبة</label>
+                        <input type="file" id="vehicle-image" accept="image/*"
+                            style="padding: 10px; border: 2px dashed #E5E7EB; border-radius: 12px; background: #F9FAFB;">
+                        <p style="font-size: 12px; color: #6B7280; margin-top: 8px;">اختر صورة للمركبة (PNG, JPG, WEBP)
+                        </p>
+                        <div id="image-preview" style="margin-top: 15px; display: none;">
+                            <img id="preview-img" src=""
+                                style="max-width: 200px; border-radius: 12px; border: 2px solid #E5E7EB;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px;">حفظ
+                        البيانات</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Image Viewer Modal -->
+        <div id="image-modal" class="modal">
+            <div class="modal-content" style="max-width: 700px; padding: 10px;">
+                <span class="close" onclick="closeImageModal()" style="left: 10px; top: -10px;">&times;</span>
+                <img id="license-image" src="" style="width: 100%; border-radius: 16px;">
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Use current origin to dynamically detect baseUrl
+        const HOST_URL = window.location.origin + window.location.pathname.replace('/admin/index.html', '').replace('/admin/', '').replace('/admin', '');
+        const API_URL = HOST_URL + '/api/admin';
+        console.log("Detected Backend URL:", HOST_URL);
+    </script>
+    <script src="assets/js/admin.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>
